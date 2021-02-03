@@ -46,9 +46,13 @@ void *malloc(size_t size)
         {
           if (table.ptr[i] == NULL)
             {
-              table.count++;
+              //
               table.ptr[i] = ptr;
               table.size[i] = size;
+              table.set[i] = 1;
+              table.count++;
+
+              //
               break;
             }
         }
@@ -81,10 +85,16 @@ void free(void *ptr)
         {
           if (table.ptr[i] == ptr)
             {
-              table.count--;
+              //
               size_free += table.size[i];
+
+              //
               table.ptr[i] = NULL;
               table.size[i] = 0;
+              table.set[i] = 0;
+              table.count--;
+
+              //
               break;
             }
         }
@@ -101,6 +111,7 @@ __attribute((constructor)) void init(void)
     {
       table.ptr[i] = NULL;
       table.size[i] = 0;
+      table.set[i] = 0;
     }
 }
 
@@ -110,17 +121,28 @@ __attribute((destructor)) void finalize(void)
   printf("Allocate : %8.lld Bytes (%8.lld call)\n", size_alloc, nb_alloc);
   printf("Free     : %8.lld Bytes (%8.lld call)\n", size_free, nb_free);
 
+  //
+  int first = 1;
+
   // Display non free memory
   if (table.count)
     {
-      printf("WARNING: NON FREE MEMORY\n");
       for (int i = 0; i < MAX_ALLOC; i++)
         {
-          if (table.ptr[i])
+          if (table.ptr[i] && !(table.set[i]))
             {
+              if (first)
+                {
+                  printf("WARNING: NON FREE MEMORY\n");
+                  first = 0;
+                }
+              // Display
               printf("Non Free : %8.lld Bytes (NOT call)\n", table.size[i]);
+
+              // Update information
               table.ptr[i] = NULL;
               table.size[i] = 0;
+              table.set[i] = 0;
               table.count--;
             }
         }
