@@ -15,8 +15,7 @@ int main(int argc, char **argv)
   if (!fd)
     {
       perror("open");
-      ret_main = 2;
-      goto end_main;
+      return 2;
     }
 
   // Read file
@@ -54,23 +53,36 @@ int main(int argc, char **argv)
     }
   else
     {
+      // Section information
       int len = elf.e_shnum;
       printf("Section:\n");
       printf("  %d section(s)\n", len);
       printf("  [Nr]         Name\n");
 
+      // Section variable
       Elf64_Shdr *shdr = (Elf64_Shdr *)(&elf + elf.e_shoff);
-      
+
+      // Check if section is defined
+      if (elf.e_shstrndx == SHN_UNDEF)
+        {
+          printf("Error: elf.e_shstrndx == SHN_UNDEF\n");
+          ret_main = 4;
+          goto end_main;
+        }
+
+      // Check if table are not NULL
+      char *strtab = (char *)&elf + shdr[elf.e_shstrndx].sh_offset;
+      if (!strtab)
+        {
+          printf("Error: strtab is NULL\n");
+          ret_main = 4;
+          goto end_main;
+        }
+
+      // Print section information
       for (int i = 0; i < len; i++)
         {
-          if (elf.e_shstrndx == SHN_UNDEF)
-            {
-              printf("Error: elf.e_shstrndx == SHN_UNDEF\n");
-              ret_main = 4;
-              goto end_main;
-            }
-          
-          char *buff = (char *)&elf + shdr[elf.e_shstrndx].sh_offset + shdr[i].sh_name;
+          char *buff = strtab + shdr[i].sh_name;
 
           if (!buff)
             {
