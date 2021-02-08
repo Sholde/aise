@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
 
 #include "alloc_debugger.h"
 
@@ -28,7 +30,7 @@ void *malloc(size_t size)
     {
       malloc_func = (void *(*)(size_t))dlsym(RTLD_NEXT, "malloc");
 
-      if (!malloc_func)
+  if (!malloc_func)
         {
           abort();
         }
@@ -49,7 +51,6 @@ void *malloc(size_t size)
               //
               table.ptr[i] = ptr;
               table.size[i] = size;
-              table.set[i] = 1;
               table.count++;
 
               //
@@ -91,7 +92,6 @@ void free(void *ptr)
               //
               table.ptr[i] = NULL;
               table.size[i] = 0;
-              table.set[i] = 0;
               table.count--;
 
               //
@@ -111,15 +111,69 @@ __attribute((constructor)) void init(void)
     {
       table.ptr[i] = NULL;
       table.size[i] = 0;
-      table.set[i] = 0;
+    }
+}
+
+/* reverse:  reverse string s in place */
+static void reverse(char s[])
+{
+  int i, j;
+  char c;
+ 
+  for (i = 0, j = strlen(s)-1; i<j; i++, j--) {
+    c = s[i];
+    s[i] = s[j];
+    s[j] = c;
+  }
+}
+
+/* itoa:  convert n to characters in s */
+static void itoa(int n, char s[])
+{
+  int i, sign;
+ 
+  if ((sign = n) < 0)  /* record sign */
+    n = -n;          /* make n positive */
+  i = 0;
+  do {       /* generate digits in reverse order */
+    s[i++] = n % 10 + '0';   /* get next digit */
+  } while ((n /= 10) > 0);     /* delete it */
+  if (sign < 0)
+    s[i++] = '-';
+  s[i] = '\0';
+  reverse(s);
+}
+
+static void alloc_print(const char *name, unsigned long long a, unsigned long long b)
+{
+  char buff[9] = {'\0'};
+
+  // Name
+  write(1, name, sizeof(char) * strlen(name));
+
+  // Size
+  itoa(a, buff);
+  write(1, buff, sizeof(buff));
+  write(1, " Bytes (", 8);
+
+  // Call
+  if (b != 0)
+    {
+      itoa(b, buff);
+      write(1, buff, sizeof(buff));
+      write(1, " call)\n", 7);
+    }
+  else
+    {
+      write(1, "NOT call)\n", 10);
     }
 }
 
 __attribute((destructor)) void finalize(void)
 {
   // Display general information
-  printf("Allocate : %8.lld Bytes (%8.lld call)\n", size_alloc, nb_alloc);
-  printf("Free     : %8.lld Bytes (%8.lld call)\n", size_free, nb_free);
+  alloc_print("Allocate : ", size_alloc, nb_alloc);
+  alloc_print("Free     : ", size_free, nb_free);
 
   //
   int first = 1;
@@ -129,20 +183,20 @@ __attribute((destructor)) void finalize(void)
     {
       for (int i = 0; i < MAX_ALLOC; i++)
         {
-          if (table.ptr[i] && !(table.set[i]))
+          if (table.ptr[i])
             {
               if (first)
                 {
-                  printf("WARNING: NON FREE MEMORY\n");
+                  puts("WARNING: NON FREE MEMORY\n");
                   first = 0;
                 }
+
               // Display
-              printf("Non Free : %8.lld Bytes (NOT call)\n", table.size[i]);
+              alloc_print("Non Free : ", table.size[i], 0);
 
               // Update information
               table.ptr[i] = NULL;
               table.size[i] = 0;
-              table.set[i] = 0;
               table.count--;
             }
         }

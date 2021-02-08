@@ -6,7 +6,6 @@
 typedef struct alloc_table_s
 {
   size_t count;
-  int set[MAX_ALLOC];
   void *ptr[MAX_ALLOC];
   size_t size[MAX_ALLOC];
 } alloc_table_t;
