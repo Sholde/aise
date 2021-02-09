@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <elf.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <string.h>
 
 int main(int argc, char **argv)
 {
@@ -18,15 +21,22 @@ int main(int argc, char **argv)
       return 2;
     }
 
-  // Read file
-  Elf64_Ehdr elf;
-  int ret_fread = fread(&elf, sizeof(Elf64_Ehdr), 1, fd);
-  if (!ret_fread)
+  // Collect stat
+  struct stat sta;
+  stat(argv[1], &sta);
+
+  // Map file
+  void *p = mmap(NULL, sta.st_size, PROT_READ, MAP_FILE | MAP_SHARED, fildes, 0);
+  if (p == MAP_FAILED)
     {
-      perror("fread");
+      perror("mmap");
       ret_main = 2;
       goto end_main;
     }
+
+  // Copy on elf variable
+  Elf64_Ehdr elf;
+  memcpy(&elf, p, sizeof(Elf64_Ehdr));
 
   // Handle information
   if (elf.e_ident[EI_MAG0] == ELFMAG0
