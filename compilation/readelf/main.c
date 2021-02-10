@@ -25,8 +25,11 @@ int main(int argc, char **argv)
   struct stat sta;
   stat(argv[1], &sta);
 
+  // Take file descriptor
+  int fildes = fileno(fd);
+
   // Map file
-  void *p = mmap(NULL, sta.st_size, PROT_READ, MAP_FILE | MAP_SHARED, fildes, 0);
+  void *p = mmap(NULL, sta.st_size, PROT_READ, MAP_FILE, fildes, 0);
   if (p == MAP_FAILED)
     {
       perror("mmap");
