@@ -69,7 +69,7 @@ int main(int argc, char **argv)
       int len = elf->e_shnum;
       printf("Section:\n");
       printf("  %d section(s)\n", len);
-      printf("  [Nr] %20s\n", "Name of symbol");
+      printf("  [Nr] %20s\n", "Name of section");
 
       // Section variable
       // Cast in char to move by bytes
