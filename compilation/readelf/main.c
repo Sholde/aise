@@ -29,7 +29,7 @@ int main(int argc, char **argv)
   int fildes = fileno(fd);
 
   // Map file
-  void *p = mmap(NULL, sta.st_size, PROT_READ, MAP_FILE, fildes, 0);
+  void *p = mmap(NULL, sta.st_size, PROT_READ, MAP_FILE | MAP_PRIVATE, fildes, 0);
   if (p == MAP_FAILED)
     {
       perror("mmap");
@@ -38,21 +38,20 @@ int main(int argc, char **argv)
     }
 
   // Copy on elf variable
-  Elf64_Ehdr elf;
-  memcpy(&elf, p, sizeof(Elf64_Ehdr));
+  Elf64_Ehdr *elf = (Elf64_Ehdr *)p;
 
   // Handle information
-  if (elf.e_ident[EI_MAG0] == ELFMAG0
-      && elf.e_ident[EI_MAG1] == ELFMAG1
-      && elf.e_ident[EI_MAG2] == ELFMAG2
-      && elf.e_ident[EI_MAG3] == ELFMAG3)
+  if (elf->e_ident[EI_MAG0] == ELFMAG0
+      && elf->e_ident[EI_MAG1] == ELFMAG1
+      && elf->e_ident[EI_MAG2] == ELFMAG2
+      && elf->e_ident[EI_MAG3] == ELFMAG3)
     {
       printf("ELF file\n");
     }
   else
     {
       printf("%s: Error: %s is not an ELF file - Bad magical bytes\n", argv[0], argv[1]);
-      printf("%s: Bytes: %d %d %d %d\n", argv[0], elf.e_ident[EI_MAG0], elf.e_ident[EI_MAG1], elf.e_ident[EI_MAG2], elf.e_ident[EI_MAG3]);
+      printf("%s: Bytes: %d %d %d %d\n", argv[0], elf->e_ident[EI_MAG0], elf->e_ident[EI_MAG1], elf->e_ident[EI_MAG2], elf->e_ident[EI_MAG3]);
       ret_main = 3;
       goto end_main;
     }
@@ -60,31 +59,33 @@ int main(int argc, char **argv)
   // It is an ELF file
 
   // Check if setction header exist
-  if (!elf.e_shnum)
+  if (!elf->e_shnum)
     {
       printf("  No section header\n");
     }
   else
     {
       // Section information
-      int len = elf.e_shnum;
+      int len = elf->e_shnum;
       printf("Section:\n");
       printf("  %d section(s)\n", len);
-      printf("  [Nr]         Name\n");
+      printf("  [Nr] %20s\n", "Name of symbol");
 
       // Section variable
-      Elf64_Shdr *shdr = (Elf64_Shdr *)(&elf + elf.e_shoff);
+      // Cast in char to move by bytes
+      Elf64_Shdr *shdr = (Elf64_Shdr *)((char *)elf + elf->e_shoff);
 
       // Check if section is defined
-      if (elf.e_shstrndx == SHN_UNDEF)
+      if (elf->e_shstrndx == SHN_UNDEF)
         {
-          printf("Error: elf.e_shstrndx == SHN_UNDEF\n");
+          printf("Error: elf->e_shstrndx == SHN_UNDEF\n");
           ret_main = 4;
           goto end_main;
         }
 
       // Check if table are not NULL
-      char *strtab = (char *)&elf + shdr[elf.e_shstrndx].sh_offset;
+      // Cast in char to move by bytes
+      char *strtab = (char *)elf + shdr[elf->e_shstrndx].sh_offset;
       if (!strtab)
         {
           printf("Error: strtab is NULL\n");
@@ -99,12 +100,12 @@ int main(int argc, char **argv)
 
           if (!buff)
             {
-              printf("Error: elf.e_shstrndx == SHN_UNDEF\n");
+              printf("Error: elf->e_shstrndx == SHN_UNDEF\n");
               ret_main = 4;
               goto end_main;
             }
-          
-          printf("  [%2d] %12s\n", i, buff);
+
+          printf("  [%2d] %20s\n", i, buff);
         }
     }
   
