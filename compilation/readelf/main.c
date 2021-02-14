@@ -179,16 +179,16 @@ int main(int argc, char **argv)
             }
 
           // Symbol section found
-          len = shdr[i].sh_entsize;
-          Elf64_Sym *sym = (Elf64_Sym *)((char *)elf + shdr[i].sh_addr);
+          len = shdr[i].sh_size / shdr[i].sh_entsize;
+          Elf64_Sym *sym = (Elf64_Sym *)((char *)elf + shdr[i].sh_offset);
 
           printf("Symbol:\n");
           printf("  %d symbol(s)\n", len);
           printf("  [Nr] %20s\n", "Name of symbol");
 
           // Check if table are not NULL
-          // Cast in char to move by bytes
-          char *strtab = (char *)elf + shdr[elf->e_shstrndx].sh_offset;
+          // cast in char to move by bytes
+          char *strtab = (char *)elf + shdr[i].sh_addr;
           if (!strtab)
             {
               printf("Error: strtab is NULL\n");
