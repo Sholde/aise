@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <stdlib.h>
 
 typedef struct client_info_s
 {
@@ -18,6 +19,7 @@ void *client_loop(void *arg)
   printf("New connection\n");
   write(client.client_socket, "Hello from server!\n", 20);
   close(client.client_socket);
+  free(arg);
 }
 
 int main(int argc, char **argv)
@@ -102,12 +104,13 @@ int main(int argc, char **argv)
           return 1;
         }
 
-      client_info_t client;
-      client.client_socket = client_socket;
+      client_info_t *client = malloc(sizeof(client_info_t));
+      client->client_socket = client_socket;
 
       pthread_t th;
       
-      pthread_create(&th, NULL, client_loop, &client);
+      pthread_create(&th, NULL, client_loop, client);
+      pthread_detach(th);
     }
 
   close(listen_sock);
