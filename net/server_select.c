@@ -147,13 +147,14 @@ int main(int argc, char **argv)
           {
             if ( i == listen_sock )
               {
+                printf("%d\n", FD_SETSIZE);
                 /* Event was on the listen Socket */
                 struct sockaddr_in client_info;
                 /* Connection request on original socket. */
                 int new;
                 unsigned int addr_size = sizeof ( struct sockaddr_in );
                 new = accept ( listen_sock, ( struct sockaddr * ) &client_info,  &addr_size );
-
+                
                 if ( new < 0 )
                   {
                     perror ( "accept" );
